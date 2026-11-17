@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inherited Echo — Temporality Experience</title>
+    <style>
+        /* DESIGN: CSS Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #f7f7f5;
+            color: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        header {
+            position: absolute;
+            top: 24px;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            margin-bottom: 4px;
+        }
+
+        p {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        #stage {
+            position: relative;
+            width: 800px;
+            height: 500px;
+            background-color: #ffffff;
+            border: 1px solid #e0e0de;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+            cursor: crosshair;
+            overflow: hidden;
+        }
+
+        /* Çizgi / İz Stili */
+        .trail-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Karakterler ortak stil */
+        .character {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        /* Çocuk (Şimdiki Zaman - Aktif) */
+        #child {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 3;
+        }
+
+        /* Baba (Geçmiş Zaman - Gecikmeli) */
+        #father {
+            background-color: #d97757;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            box-shadow: 0 4px 12px rgba(217, 119, 87, 0.3);
+            z-index: 2;
+        }
+
+        .father-inner {
+            font-size: 9px;
+        }
+
+        /* Düşünce Bulutu */
+        #thought-bubble {
+            position: absolute;
+            background: #ffffff;
+            border: 1px solid #dcdcdc;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            color: #333;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            pointer-events: none;
+            transform: translate(-50%, -140%);
+            white-space: nowrap;
+            z-index: 4;
+            opacity: 0.9;
+        }
+
+        #thought-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: #ffffff;
+            border-right: 1px solid #dcdcdc;
+            border-bottom: 1px solid #dcdcdc;
+            transform: translateX(-50%) rotate(45deg);
+        }
+
+        /* Kontrol Bilgisi */
+        .controls-hint {
+            position: absolute;
+            bottom: 16px;
+            font-size: 0.75rem;
+            color: #888;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Inherited Echo</h1>
+        <p>The child leads the present; the father follows the echo of the past.</p>
+    </header>
+
+    <div id="stage">
+        <!-- Trail Canvas for connecting line -->
+        <canvas id="trailCanvas" class="trail-canvas"></canvas>
+
+        <!-- Düşünce Bulutu (Çocuk için) -->
+        <div id="thought-bubble">"He is doing it wrong, I wouldn't do that."</div>
+
+        <!-- Karakterler -->
+        <div id="father" class="character"><span class="father-inner">F</span></div>
+        <div id="child" class="character"><span>C</span></div>
+
+        <div class="controls-hint">Move pointer inside the stage or use Arrow Keys / WASD</div>
+    </div>
+
+    <script>
+        // DESIGN: Ayarlanabilir parametreler ve kural ayarları
+        const DESIGN = {
+            delayMs: 3000,          // Babanın çocuktan kaç milisaniye geride geleceği (3 saniye)
+            sampleIntervalMs: 30,   // Konum kaydetme sıklığı
+            childSpeed: 0.15,       // Klavye/fare hareketlerinde yumuşatma katsayısı (easing)
+            colors: {
+                child: "#1a1a1a",
+                father: "#d97757",
+                trail: "rgba(217, 119, 87, 0.25)"
+            }
+        };
+
+        // STATE: Durum Yönetimi
+        const stage = document.getElementById('stage');
+        const childEl = document.getElementById('child');
+        const fatherEl = document.getElementById('father');
+        const bubbleEl = document.getElementById('thought-bubble');
+        const canvas = document.getElementById('trailCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Sahne boyutlarına göre canvas'ı ayarla
+        function resizeCanvas() {
+            canvas.width = stage.clientWidth;
+            canvas.height = stage.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Başlangıç konumları (merkez)
+        let childPos = { x: stage.clientWidth / 2, y: stage.clientHeight / 2 };
+        let targetPos = { x: stage.clientWidth / 2, y: stage.clientHeight / 2 };
+        
+        // Geçmiş konumları tutacak hafıza dizisi (Timestamp ve Konum)
+        let historyQueue = [];
+
+        // Klavye durum takibi
+        const keys = {};
+        window.addEventListener('keydown', (e) => { keys[e.key] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+        // Mouse ve Dokunma Girişleri (Input)
+        stage.addEventListener('mousemove', (e) => {
+            const rect = stage.getBoundingClientRect();
+            targetPos.x = e.clientX - rect.left;
+            targetPos.y = e.clientY - rect.top;
+        });
+
+        stage.addEventListener('touchmove', (e) => {
+            const rect = stage.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                targetPos.x = e.touches[0].clientX - rect.left;
+                targetPos.y = e.touches[0].clientY - rect.top;
+            }
+            e.preventDefault();
+        }, { passive: false });
+
+        let lastSampleTime = performance.now();
+
+        // RULE & OUTPUT: Simülasyon Döngüsü (Her karede çalışır)
+        function update(currentTime) {
+            // 1. Klavye kontrolü desteği (Ok tuşları / WASD)
+            const speed = 3;
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) targetPos.y = Math.max(20, targetPos.y - speed);
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) targetPos.y = Math.min(stage.clientHeight - 20, targetPos.y + speed);
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) targetPos.x = Math.max(20, targetPos.x - speed);
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) targetPos.x = Math.min(stage.clientWidth - 20, targetPos.x + speed);
+
+            // Çocuğun konumunu hedef konuma yumuşakça yaklaştır (Linear Interpolation)
+            childPos.x += (targetPos.x - childPos.x) * DESIGN.childSpeed;
+            childPos.y += (targetPos.y - childPos.y) * DESIGN.childSpeed;
+
+            // 2. Zaman kuralı: Belirli aralıklarla çocuğun konumunu zaman damgasıyla kaydet
+            if (currentTime - lastSampleTime >= DESIGN.sampleIntervalMs) {
+                historyQueue.push({
+                    x: childPos.x,
+                    y: childPos.y,
+                    time: currentTime
+                });
+                lastSampleTime = currentTime;
+            }
+
+            // Süresi dolan eski verileri temizle (delayMs'den daha eski olanlar)
+            while (historyQueue.length > 0 && (currentTime - historyQueue[0].time) > DESIGN.delayMs) {
+                historyQueue.shift();
+            }
+
+            // 3. Babanın konumunu belirle (Gecikmeli geçmiş nokta)
+            let fatherPos = { x: childPos.x, y: childPos.y }; 
+            if (historyQueue.length > 0) {
+                fatherPos = { x: historyQueue[0].x, y: historyQueue[0].y };
+            }
+
+            // 4. Render (Çıktı): DOM elemanlarını güncelle
+            childEl.style.left = `${childPos.x}px`;
+            childEl.style.top = `${childPos.y}px`;
+
+            bubbleEl.style.left = `${childPos.x}px`;
+            bubbleEl.style.top = `${childPos.y}px`;
+
+            fatherEl.style.left = `${fatherPos.x}px`;
+            fatherEl.style.top = `${fatherPos.y}px`;
+
+            // Baba ile çocuk arasındaki geçmiş izini çiz
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (historyQueue.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(fatherPos.x, fatherPos.y);
+                for (let i = 0; i < historyQueue.length; i++) {
+                    ctx.lineTo(historyQueue[i].x, historyQueue[i].y);
+                }
+                ctx.lineTo(childPos.x, childPos.y);
+                ctx.strokeStyle = DESIGN.colors.trail;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]); // Kesikli zaman çizgisi
+                ctx.stroke();
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // Döngüyü başlat
+        requestAnimationFrame(update);
+    </script>
+</body>
+</html>
