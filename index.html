@@ -3,9 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inherited Echo — Temporality Experience</title>
+    <title>Persistent Trace & Feedback Experiment</title>
     <style>
-        /* DESIGN: CSS Styles */
+        :root {
+            --bg-color: #0d0d0d;
+            --surface-color: #161616;
+            --border-color: #2c2c2c;
+            --text-primary: #f0f0f0;
+            --text-secondary: #888888;
+            --accent: #22c55e;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -13,279 +21,275 @@
         }
 
         body {
-            background-color: #f7f7f5;
-            color: #1a1a1a;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            height: 100vh;
-        }
-
-        header {
-            position: absolute;
-            top: 24px;
-            text-align: center;
-            pointer-events: none;
-        }
-
-        h1 {
-            font-size: 1.1rem;
-            font-weight: 500;
-            letter-spacing: -0.01em;
-            margin-bottom: 4px;
-        }
-
-        p {
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        #stage {
-            position: relative;
-            width: 800px;
-            height: 500px;
-            background-color: #ffffff;
-            border: 1px solid #e0e0de;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
-            cursor: crosshair;
+            align-items: center;
+            min-height: 100vh;
             overflow: hidden;
         }
 
-        /* Çizgi / İz Stili */
-        .trail-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .experiment-container {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 720px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+        }
+
+        .experiment-header {
+            margin-bottom: 1rem;
+        }
+
+        .experiment-header h1 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 0.2rem;
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            background: #050505;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            height: 360px;
+        }
+
+        canvas {
+            display: block;
             width: 100%;
             height: 100%;
-            pointer-events: none;
+            cursor: crosshair;
         }
 
-        /* Karakterler ortak stil */
-        .character {
+        .status-banner {
             position: absolute;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
+            top: 12px;
+            left: 12px;
+            background: rgba(22, 22, 22, 0.85);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.03em;
+        }
+
+        .experiment-footer {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: 600;
-            transition: background-color 0.2s;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1rem;
         }
 
-        /* Çocuk (Şimdiki Zaman - Aktif) */
-        #child {
-            background-color: #1a1a1a;
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 3;
+        .btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        /* Baba (Geçmiş Zaman - Gecikmeli) */
-        #father {
-            background-color: #d97757;
-            color: #ffffff;
-            border: 2px solid #ffffff;
-            box-shadow: 0 4px 12px rgba(217, 119, 87, 0.3);
-            z-index: 2;
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
-        .father-inner {
-            font-size: 9px;
+        .metrics {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
         }
 
-        /* Düşünce Bulutu */
-        #thought-bubble {
-            position: absolute;
-            background: #ffffff;
-            border: 1px solid #dcdcdc;
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 0.75rem;
-            color: #333;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            pointer-events: none;
-            transform: translate(-50%, -140%);
-            white-space: nowrap;
-            z-index: 4;
-            opacity: 0.9;
-        }
-
-        #thought-bubble::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 6px;
-            height: 6px;
-            background: #ffffff;
-            border-right: 1px solid #dcdcdc;
-            border-bottom: 1px solid #dcdcdc;
-            transform: translateX(-50%) rotate(45deg);
-        }
-
-        /* Kontrol Bilgisi */
-        .controls-hint {
-            position: absolute;
-            bottom: 16px;
-            font-size: 0.75rem;
-            color: #888;
-            pointer-events: none;
+        .metrics strong {
+            color: var(--text-primary);
         }
     </style>
 </head>
 <body>
+    <main class="experiment-container">
+        <header class="experiment-header">
+            <h1>Persistent Trace & Feedback</h1>
+            <p class="subtitle">Drag across the canvas to paint and accumulate selection paths. Visited nodes turn green and persist.</p>
+        </header>
 
-    <header>
-        <h1>Inherited Echo</h1>
-        <p>The child leads the present; the father follows the echo of the past.</p>
-    </header>
+        <div class="canvas-wrapper">
+            <canvas id="trailCanvas"></canvas>
+            <div id="statusBanner" class="status-banner" aria-live="polite">State: Ready (Draw to trace)</div>
+        </div>
 
-    <div id="stage">
-        <!-- Trail Canvas for connecting line -->
-        <canvas id="trailCanvas" class="trail-canvas"></canvas>
-
-        <!-- Düşünce Bulutu (Çocuk için) -->
-        <div id="thought-bubble">"He is doing it wrong, I wouldn't do that."</div>
-
-        <!-- Karakterler -->
-        <div id="father" class="character"><span class="father-inner">F</span></div>
-        <div id="child" class="character"><span>C</span></div>
-
-        <div class="controls-hint">Move pointer inside the stage or use Arrow Keys / WASD</div>
-    </div>
+        <footer class="experiment-footer">
+            <button id="clearBtn" class="btn">Clear Trails</button>
+            <div class="metrics">
+                <span>Active Traces: <strong id="traceCountVal">0</strong></span>
+                <span>System Memory: <strong id="memoryVal">Clean</strong></span>
+            </div>
+        </footer>
+    </main>
 
     <script>
-        // DESIGN: Ayarlanabilir parametreler ve kural ayarları
         const DESIGN = {
-            delayMs: 3000,          // Babanın çocuktan kaç milisaniye geride geleceği (3 saniye)
-            sampleIntervalMs: 30,   // Konum kaydetme sıklığı
-            childSpeed: 0.15,       // Klavye/fare hareketlerinde yumuşatma katsayısı (easing)
+            gridSpacing: 25,
+            selectionRadius: 35,
             colors: {
-                child: "#1a1a1a",
-                father: "#d97757",
-                trail: "rgba(217, 119, 87, 0.25)"
+                background: '#050505',
+                nodeDefault: 'rgba(255, 255, 255, 0.12)',
+                nodeSelected: '#22c55e',
+                cursorTrail: 'rgba(34, 197, 94, 0.4)'
             }
         };
 
-        // STATE: Durum Yönetimi
-        const stage = document.getElementById('stage');
-        const childEl = document.getElementById('child');
-        const fatherEl = document.getElementById('father');
-        const bubbleEl = document.getElementById('thought-bubble');
+        let state = {
+            nodes: [],
+            isDrawing: false,
+            lastX: 0,
+            lastY: 0,
+            activeTracesCount: 0
+        };
+
         const canvas = document.getElementById('trailCanvas');
         const ctx = canvas.getContext('2d');
+        const clearBtn = document.getElementById('clearBtn');
+        const statusBanner = document.getElementById('statusBanner');
+        const traceCountVal = document.getElementById('traceCountVal');
+        const memoryVal = document.getElementById('memoryVal');
 
-        // Sahne boyutlarına göre canvas'ı ayarla
-        function resizeCanvas() {
-            canvas.width = stage.clientWidth;
-            canvas.height = stage.clientHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        function initGrid() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
 
-        // Başlangıç konumları (merkez)
-        let childPos = { x: stage.clientWidth / 2, y: stage.clientHeight / 2 };
-        let targetPos = { x: stage.clientWidth / 2, y: stage.clientHeight / 2 };
-        
-        // Geçmiş konumları tutacak hafıza dizisi (Timestamp ve Konum)
-        let historyQueue = [];
-
-        // Klavye durum takibi
-        const keys = {};
-        window.addEventListener('keydown', (e) => { keys[e.key] = true; });
-        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
-
-        // Mouse ve Dokunma Girişleri (Input)
-        stage.addEventListener('mousemove', (e) => {
-            const rect = stage.getBoundingClientRect();
-            targetPos.x = e.clientX - rect.left;
-            targetPos.y = e.clientY - rect.top;
-        });
-
-        stage.addEventListener('touchmove', (e) => {
-            const rect = stage.getBoundingClientRect();
-            if (e.touches.length > 0) {
-                targetPos.x = e.touches[0].clientX - rect.left;
-                targetPos.y = e.touches[0].clientY - rect.top;
-            }
-            e.preventDefault();
-        }, { passive: false });
-
-        let lastSampleTime = performance.now();
-
-        // RULE & OUTPUT: Simülasyon Döngüsü (Her karede çalışır)
-        function update(currentTime) {
-            // 1. Klavye kontrolü desteği (Ok tuşları / WASD)
-            const speed = 3;
-            if (keys['ArrowUp'] || keys['w'] || keys['W']) targetPos.y = Math.max(20, targetPos.y - speed);
-            if (keys['ArrowDown'] || keys['s'] || keys['S']) targetPos.y = Math.min(stage.clientHeight - 20, targetPos.y + speed);
-            if (keys['ArrowLeft'] || keys['a'] || keys['A']) targetPos.x = Math.max(20, targetPos.x - speed);
-            if (keys['ArrowRight'] || keys['d'] || keys['D']) targetPos.x = Math.min(stage.clientWidth - 20, targetPos.x + speed);
-
-            // Çocuğun konumunu hedef konuma yumuşakça yaklaştır (Linear Interpolation)
-            childPos.x += (targetPos.x - childPos.x) * DESIGN.childSpeed;
-            childPos.y += (targetPos.y - childPos.y) * DESIGN.childSpeed;
-
-            // 2. Zaman kuralı: Belirli aralıklarla çocuğun konumunu zaman damgasıyla kaydet
-            if (currentTime - lastSampleTime >= DESIGN.sampleIntervalMs) {
-                historyQueue.push({
-                    x: childPos.x,
-                    y: childPos.y,
-                    time: currentTime
-                });
-                lastSampleTime = currentTime;
-            }
-
-            // Süresi dolan eski verileri temizle (delayMs'den daha eski olanlar)
-            while (historyQueue.length > 0 && (currentTime - historyQueue[0].time) > DESIGN.delayMs) {
-                historyQueue.shift();
-            }
-
-            // 3. Babanın konumunu belirle (Gecikmeli geçmiş nokta)
-            let fatherPos = { x: childPos.x, y: childPos.y }; 
-            if (historyQueue.length > 0) {
-                fatherPos = { x: historyQueue[0].x, y: historyQueue[0].y };
-            }
-
-            // 4. Render (Çıktı): DOM elemanlarını güncelle
-            childEl.style.left = `${childPos.x}px`;
-            childEl.style.top = `${childPos.y}px`;
-
-            bubbleEl.style.left = `${childPos.x}px`;
-            bubbleEl.style.top = `${childPos.y}px`;
-
-            fatherEl.style.left = `${fatherPos.x}px`;
-            fatherEl.style.top = `${fatherPos.y}px`;
-
-            // Baba ile çocuk arasındaki geçmiş izini çiz
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (historyQueue.length > 1) {
-                ctx.beginPath();
-                ctx.moveTo(fatherPos.x, fatherPos.y);
-                for (let i = 0; i < historyQueue.length; i++) {
-                    ctx.lineTo(historyQueue[i].x, historyQueue[i].y);
+            state.nodes = [];
+            for (let x = DESIGN.gridSpacing; x < canvas.width; x += DESIGN.gridSpacing) {
+                for (let y = DESIGN.gridSpacing; y < canvas.height; y += DESIGN.gridSpacing) {
+                    state.nodes.push({
+                        x: x,
+                        y: y,
+                        selected: false,
+                        intensity: 0.0
+                    });
                 }
-                ctx.lineTo(childPos.x, childPos.y);
-                ctx.strokeStyle = DESIGN.colors.trail;
-                ctx.lineWidth = 2;
-                ctx.setLineDash([4, 4]); // Kesikli zaman çizgisi
-                ctx.stroke();
             }
-
-            requestAnimationFrame(update);
+            state.activeTracesCount = 0;
+            updateMetrics();
         }
 
-        // Döngüyü başlat
-        requestAnimationFrame(update);
+        function initInput() {
+            canvas.addEventListener('pointerdown', (e) => {
+                state.isDrawing = true;
+                const rect = canvas.getBoundingClientRect();
+                state.lastX = e.clientX - rect.left;
+                state.lastY = e.clientY - rect.top;
+                processSelection(state.lastX, state.lastY);
+                statusBanner.textContent = "State: Tracing & Accumulating Data";
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                if (!state.isDrawing) return;
+                const rect = canvas.getBoundingClientRect();
+                let x = e.clientX - rect.left;
+                let y = e.clientY - rect.top;
+
+                processSelection(x, y);
+                state.lastX = x;
+                state.lastY = y;
+            });
+
+            window.addEventListener('pointerup', () => {
+                state.isDrawing = false;
+                statusBanner.textContent = "State: Idle (Selections Preserved)";
+            });
+
+            clearBtn.addEventListener('click', () => {
+                state.nodes.forEach(n => {
+                    n.selected = false;
+                    n.intensity = 0.0;
+                });
+                state.activeTracesCount = 0;
+                updateMetrics();
+                statusBanner.textContent = "State: Memory Cleared";
+            });
+        }
+
+        function processSelection(x, y) {
+            state.nodes.forEach(node => {
+                let dx = node.x - x;
+                let dy = node.y - y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < DESIGN.selectionRadius) {
+                    if (!node.selected) {
+                        node.selected = true;
+                        state.activeTracesCount++;
+                    }
+                    node.intensity = 1.0;
+                }
+            });
+            updateMetrics();
+        }
+
+        function updatePhysics() {
+            state.nodes.forEach(node => {
+                if (node.intensity > 0.0) {
+                    node.intensity -= 0.02;
+                    if (node.intensity < 0.0) node.intensity = 0.0;
+                }
+            });
+        }
+
+        function renderOutput() {
+            ctx.fillStyle = DESIGN.colors.background;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            state.nodes.forEach(node => {
+                ctx.beginPath();
+                if (node.selected) {
+                    let radius = 3 + (node.intensity * 3);
+                    ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = DESIGN.colors.nodeSelected;
+                    ctx.shadowColor = DESIGN.colors.nodeSelected;
+                    ctx.shadowBlur = 8 * node.intensity;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.arc(node.x, node.y, 1.5, 0, Math.PI * 2);
+                    ctx.fillStyle = DESIGN.colors.nodeDefault;
+                    ctx.fill();
+                }
+            });
+        }
+
+        function updateMetrics() {
+            traceCountVal.textContent = state.activeTracesCount;
+            memoryVal.textContent = state.activeTracesCount > 50 ? "Dense (Accumulating)" : state.activeTracesCount > 0 ? "Active" : "Clean";
+        }
+
+        function loop() {
+            updatePhysics();
+            renderOutput();
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('load', () => {
+            initGrid();
+            initInput();
+            loop();
+        });
     </script>
 </body>
 </html>
